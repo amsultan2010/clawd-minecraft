@@ -235,6 +235,12 @@ const clawd = (now: Mood, width: number) => {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="50" shape-rendering="crispEdges"><style>${css}</style><g class="m ${place}">${figure(now, false)}</g><g class="s ${now === 'walk' ? 'p' : 'c'}">${figure(now, true)}</g></svg>`
 }
 
+// The width Clawd's strip was last drawn for. The desktop keeps his frame only
+// while his Svg source stays byte-identical (a changed one reloads it, which
+// blinks and restarts his walk), and the band's width wobbles by a cell or two
+// while Claude works, so only a real resize gets a new strip.
+let strip = 0
+
 // Clawd's mood is read off two facts, so events that overlap cannot leave it
 // wrong: how many questions are waiting, and the timer that ends a cheer.
 let asking = 0
@@ -330,6 +336,11 @@ export const register: Register = on => {
     // What the band has left beside the HUD, guessed from its cells: only the
     // cap on Clawd's frame, which the surface fits to the room it really has.
     const spare = Math.max(120, Math.round(e.props.bodyColumns * 8) - 364)
+
+    if (Math.abs(spare - strip) >= 32) {
+      strip = spare
+    }
+
     const { Box, Svg } = $.ui.resolve(e)
     // The band is shared: whatever another mod drew there (a confirmation with
     // buttons, say) keeps its place under the HUD.
@@ -347,7 +358,7 @@ export const register: Register = on => {
             />
           </Box>
           <Box flexGrow={1} minWidth={0} overflow="hidden">
-            <Svg source={clawd(now, spare)} alt={`Clawd: ${now}`} height={50} isInteractive />
+            <Svg source={clawd(now, strip)} alt={`Clawd: ${now}`} height={50} isInteractive />
           </Box>
         </Box>
         {theirs}

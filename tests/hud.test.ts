@@ -117,6 +117,26 @@ test('never shows the context as less than empty', async ($, on) => {
   await ui.unmount()
 })
 
+test('keeps Clawd’s picture byte-identical while the band’s width only wobbles', async ($, on) => {
+  mock.clock(on)
+  usage(on, BOTH)
+
+  // the desktop keeps his frame only while the source is the same text: a changed one reloads it
+  const picture = async (bodyColumns: number) => {
+    const ui = await $.ui.mount({ ...BAND, props: { ...BAND.props, bodyColumns }, surface: 'desktop' })
+    const source = (await ui.findAll({ type: 'Svg' }))[1]?.props.source
+    await ui.unmount()
+
+    return source
+  }
+  const first = await picture(80)
+
+  expect(await picture(81)).toBe(first)
+  expect(await picture(78)).toBe(first)
+  // a real resize still gets a strip that fits
+  expect(await picture(100)).not.toBe(first)
+})
+
 test('carries a still Clawd for people who ask for reduced motion', async ($, on) => {
   mock.clock(on)
   usage(on, BOTH)
