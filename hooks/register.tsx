@@ -118,23 +118,31 @@ const icons = (
   }
 }
 
-// The HUD at the game's own 182x25 pixel grid; each argument is a percent left.
-const hud = (week: number, session: number, context: number) => {
+// The HUD at the game's own 182x25 pixel grid; each argument is a percent
+// left, or undefined for a figure with no reading, whose bar is left out.
+const hud = (week?: number, session?: number, context?: number) => {
   const base: Paint = new Map()
   const top: Paint = new Map()
 
-  icons(base, ARMOR, ARMOR_COLORS, week, 0, 8, 0, [0, 5])
-  icons(base, HEART, HEART_COLORS, week, 0, 8, 10, [0, 5])
-  icons(base, FOOD, FOOD_COLORS, context, 173, -8, 10, [4, 9])
+  if (week !== undefined) {
+    icons(base, ARMOR, ARMOR_COLORS, week, 0, 8, 0, [0, 5])
+    icons(base, HEART, HEART_COLORS, week, 0, 8, 10, [0, 5])
+  }
 
-  px(base, '#000', 0, 20, 182, 5)
-  px(base, '#333', 1, 21, 180, 3)
-  const filled = Math.round(session * 1.8)
-  if (filled > 0) XP.forEach((fill, i) => px(base, fill, 1, 21 + i, filled))
-  for (let x = 10; x < 180; x += 10) px(base, 'rgba(0,0,0,.5)', x, 21, 1, 3)
+  if (context !== undefined) {
+    icons(base, FOOD, FOOD_COLORS, context, 173, -8, 10, [4, 9])
+  }
 
-  const text = `${session}%`
-  write(top, text, Math.round((182 - (text.length * 6 - 1)) / 2), 14, '#80ff20')
+  if (session !== undefined) {
+    px(base, '#000', 0, 20, 182, 5)
+    px(base, '#333', 1, 21, 180, 3)
+    const filled = Math.round(session * 1.8)
+    if (filled > 0) XP.forEach((fill, i) => px(base, fill, 1, 21 + i, filled))
+    for (let x = 10; x < 180; x += 10) px(base, 'rgba(0,0,0,.5)', x, 21, 1, 3)
+
+    const text = `${session}%`
+    write(top, text, Math.round((182 - (text.length * 6 - 1)) / 2), 14, '#80ff20')
+  }
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 182 25" width="364" height="50" shape-rendering="crispEdges">${paths(base)}${paths(top)}</svg>`
 }
@@ -259,11 +267,30 @@ export const register: Register = on => {
       return next(e)
     }
 
-    const left = (kind: string) =>
-      Math.round(100 - (rateLimits.find(one => one.kind === kind)?.percentUsed ?? 0))
+    const time = await $.clock.now()
+    // What a window has left: nothing to say without a reading, all of it once
+    // its reset time has passed, never below zero.
+    const left = (kind: string) => {
+      const one = rateLimits.find(limit => limit.kind === kind)
+
+      if (one === undefined) {
+        return undefined
+      }
+
+      if (one.resetsAt !== undefined && Date.parse(one.resetsAt) <= time) {
+        return 100
+      }
+
+      return Math.min(100, Math.max(0, Math.round(100 - one.percentUsed)))
+    }
     const week = left('seven_day')
     const session = left('five_hour')
-    const room = 100 - (context.percent ?? 0)
+    const room = context.percent === undefined ? undefined : 100 - context.percent
+    const figures = [
+      week !== undefined && `7d ${week}% left`,
+      session !== undefined && `5h ${session}% left`,
+      room !== undefined && `context ${room}% left`,
+    ]
     const now = await read($, mood)
     // What the band has left beside the HUD, guessed from its cells: only the
     // cap on Clawd's frame, which the surface fits to the room it really has.
@@ -275,7 +302,7 @@ export const register: Register = on => {
         <Box flexShrink={0}>
           <Svg
             source={hud(week, session, room)}
-            alt={`7d ${week}% left, 5h ${session}% left, context ${room}% left`}
+            alt={figures.filter(Boolean).join(', ')}
             width={364}
             height={50}
           />

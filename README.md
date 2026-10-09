@@ -9,6 +9,8 @@ A Claude Code mod that shows your usage as a Minecraft HUD (with Clawd walking a
 - **Hunger:** how much of the context window is left
 - **Clawd:** paces around, waves under a "?" when Claude asks you something, and jumps when a turn finishes
 
+A bar stays blank until Claude Code has a reading for it (nothing is guessed), and a limit whose reset time has already passed shows as full.
+
 ## Install
 
 You need Claude Code 2.1.287 or later (mods are on by default from there, no flag needed) and a Claude subscription, since the bars read your plan's limits. Run these two in a terminal:
