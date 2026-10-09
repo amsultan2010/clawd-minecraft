@@ -226,13 +226,15 @@ const figure = (now: Mood, isStill: boolean) => {
 // redraws while he walks. `width` is that frame's cap; the frame's page is
 // painted the band's dark so it shows no white. Two figures are in it, the
 // moving one (`m`) and a still one (`s`) the system's reduced-motion setting
-// shows in its place.
+// shows in its place. The walk starts a quarter of the way into its lap: mid
+// strip heading right, which is where the other poses stand, so going back to
+// walking after a question or a cheer does not jump him to the left edge.
 const clawd = (now: Mood, width: number) => {
   const place = now === 'walk' ? 'w' : 'c'
   const lap = Math.max(8, Math.round((width - 80) / 14))
-  const css = `:root{color-scheme:light dark;overflow:hidden}body{margin:0;overflow:hidden}svg{width:100vw}@media(prefers-color-scheme:dark){:root,body{background:#212121}}.w{animation:w ${lap}s linear infinite}.g{animation:g ${lap}s step-end infinite}.c{transform:translateX(calc(50vw - 34px))}.p{transform:translateX(6px)}.s{display:none}@media(prefers-reduced-motion:reduce){.m{display:none}.s{display:inline}}@keyframes w{0%,100%{transform:translateX(6px)}50%{transform:translateX(calc(100vw - 74px))}}@keyframes g{0%{transform:translateX(2px)}50%{transform:translateX(-2px)}}`
+  const css = `:root{color-scheme:light dark;overflow:hidden}body{margin:0;overflow:hidden}svg{width:100vw}@media(prefers-color-scheme:dark){:root,body{background:#212121}}.w{animation:w ${lap}s linear ${-lap / 4}s infinite}.g{animation:g ${lap}s step-end ${-lap / 4}s infinite}.c{transform:translateX(calc(50vw - 34px))}.s{display:none}@media(prefers-reduced-motion:reduce){.m{display:none}.s{display:inline}}@keyframes w{0%,100%{transform:translateX(6px)}50%{transform:translateX(calc(100vw - 74px))}}@keyframes g{0%{transform:translateX(2px)}50%{transform:translateX(-2px)}}`
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="50" shape-rendering="crispEdges"><style>${css}</style><g class="m ${place}">${figure(now, false)}</g><g class="s ${now === 'walk' ? 'p' : 'c'}">${figure(now, true)}</g></svg>`
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="50" shape-rendering="crispEdges"><style>${css}</style><g class="m ${place}">${figure(now, false)}</g><g class="s c">${figure(now, true)}</g></svg>`
 }
 
 // The width Clawd's strip was last drawn for. The desktop keeps his frame only

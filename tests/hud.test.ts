@@ -137,6 +137,20 @@ test('keeps Clawd’s picture byte-identical while the band’s width only wobbl
   expect(await picture(100)).not.toBe(first)
 })
 
+test('starts the walk in the middle, where his other poses stand, heading right', async ($, on) => {
+  mock.clock(on)
+  usage(on, BOTH)
+
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  const source = String((await ui.findAll({ type: 'Svg' }))[1]?.props.source)
+
+  // 80 columns give a 14s lap; a quarter of the way in he is mid-strip, eyes right
+  expect(source).toContain('.w{animation:w 14s linear -3.5s infinite}')
+  expect(source).toContain('.g{animation:g 14s step-end -3.5s infinite}')
+  expect(source).toContain('<g class="s c">')
+  await ui.unmount()
+})
+
 test('carries a still Clawd for people who ask for reduced motion', async ($, on) => {
   mock.clock(on)
   usage(on, BOTH)
