@@ -1,6 +1,6 @@
 # clawd-minecraft
 
-Your Claude usage, but as a Minecraft HUD (with Clawd walking around next to it). It sits right above the prompt box in the Claude desktop app.
+A Claude Code mod that shows your usage as a Minecraft HUD (with Clawd walking around next to it). It sits right above the prompt box in the Claude desktop app.
 
 ![The HUD above the prompt box](screenshot.webp)
 
@@ -11,7 +11,7 @@ Your Claude usage, but as a Minecraft HUD (with Clawd walking around next to it)
 
 ## Install
 
-You need Claude Code installed (a recent version, since mods are still early access) and a Claude subscription, since the bars read your plan's limits. Run these two in a terminal:
+You need Claude Code 2.1.287 or later (mods are on by default from there, no flag needed) and a Claude subscription, since the bars read your plan's limits. Run these two in a terminal:
 
 ```bash
 claude plugin marketplace add amsultan2010/clawd-minecraft
@@ -27,6 +27,12 @@ Paste this into Claude Code (the Code tab works too):
 ```
 Install the clawd-minecraft mod for me. Run `claude plugin marketplace add amsultan2010/clawd-minecraft` and then `claude plugin install clawd-minecraft@clawd-minecraft`, and tell me when it's done so I can start a new session.
 ```
+
+## What it touches
+
+It reads your usage numbers (the 5-hour and 7-day limits and the context window) and draws the HUD. That's it. No network calls, no file access, no shell commands.
+
+It also notices when Claude asks you a question or finishes a turn (that's how Clawd knows when to react), but it never changes or blocks anything. Run `claude plugin validate .` in this repo if you want to see every hook and call for yourself.
 
 ## Contributing
 

@@ -9,9 +9,14 @@
   "homepage": "https://github.com/amsultan2010/clawd-minecraft",
   "repository": "https://github.com/amsultan2010/clawd-minecraft",
   "keywords": [
+    "claude-code-mod",
+    "function-hooks",
     "usage",
+    "rate-limits",
+    "context-window",
     "hud",
     "clawd",
+    "pixel-art",
     "desktop"
   ],
   "types": "./types/index.d.ts"
