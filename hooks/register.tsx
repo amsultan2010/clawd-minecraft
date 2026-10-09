@@ -284,11 +284,6 @@ export const register: Register = on => {
     }
 
     const { context, rateLimits } = await $.session.usage()
-
-    if (rateLimits.length === 0) {
-      return next(e)
-    }
-
     const time = await $.clock.now()
     // What a window has left: nothing to say without a reading, all of it once
     // its reset time has passed, never below zero.
@@ -307,7 +302,13 @@ export const register: Register = on => {
     }
     const week = left('seven_day')
     const session = left('five_hour')
-    const room = context.percent === undefined ? undefined : 100 - context.percent
+    const room = context.percent === undefined ? undefined : Math.max(0, 100 - context.percent)
+
+    // Nothing has a reading yet (a fresh session before its first reply).
+    if (week === undefined && session === undefined && room === undefined) {
+      return next(e)
+    }
+
     const figures = [
       week !== undefined && `7d ${week}% left`,
       session !== undefined && `5h ${session}% left`,

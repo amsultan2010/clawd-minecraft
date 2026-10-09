@@ -13,7 +13,7 @@ A bar stays blank until Claude Code has a reading for it (nothing is guessed), a
 
 ## Install
 
-You need Claude Code 2.1.287 or later (mods are on by default from there, no flag needed) and a Claude subscription, since the bars read your plan's limits. Run these two in a terminal:
+You need Claude Code 2.1.287 or later (mods are on by default from there, no flag needed). The hearts, armor and XP bar also need a Claude subscription, since they read your plan's limits (without one you still get hunger and Clawd). Run these two in a terminal:
 
 ```bash
 claude plugin marketplace add amsultan2010/clawd-minecraft

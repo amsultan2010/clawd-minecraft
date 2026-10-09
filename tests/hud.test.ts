@@ -83,6 +83,40 @@ test('never shows less than 0% for a limit that is over', async ($, on) => {
   await ui.unmount()
 })
 
+test('draws hunger and Clawd alone when only the context has a reading', async ($, on) => {
+  mock.clock(on)
+  // no plan limits (an API key), or only a kind the HUD has no bar for
+  usage(on, [{ kind: 'spend_limit', percentUsed: 40 }], 25)
+
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  const [hud, clawd] = await ui.findAll({ type: 'Svg' })
+
+  expect(hud?.props.alt).toBe('context 75% left')
+  expect(clawd?.props.alt).toBe('Clawd: walk')
+  await ui.unmount()
+})
+
+test('draws nothing while no figure has a reading', async ($, on) => {
+  mock.clock(on)
+  usage(on, [{ kind: 'spend_limit', percentUsed: 40 }])
+
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+
+  expect(await ui.find({ type: 'Svg' })).toBeUndefined()
+  expect((await ui.find({ type: 'Text' }))?.text).toBe('drawn beneath')
+  await ui.unmount()
+})
+
+test('never shows the context as less than empty', async ($, on) => {
+  mock.clock(on)
+  usage(on, [], 104)
+
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+
+  expect((await ui.find({ type: 'Svg' }))?.props.alt).toBe('context 0% left')
+  await ui.unmount()
+})
+
 test('Clawd walks, celebrates a finished turn, then walks again', async ($, on) => {
   const clock = mock.clock(on)
   usage(on, BOTH)
