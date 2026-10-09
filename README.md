@@ -28,4 +28,17 @@ Paste this into Claude Code (the Code tab works too):
 Install the clawd-minecraft mod for me. Run `claude plugin marketplace add amsultan2010/clawd-minecraft` and then `claude plugin install clawd-minecraft@clawd-minecraft`, and tell me when it's done so I can start a new session.
 ```
 
-Not affiliated with Mojang or Anthropic. The sprites are redrawn from scratch.
+## Contributing
+
+Issues and pull requests are welcome. Before you open a PR, make sure these two still pass:
+
+```bash
+claude plugin validate .
+claude plugin test .
+```
+
+## License
+
+[MIT](LICENSE). That covers the code and the pixel art in this repo (all redrawn from scratch).
+
+This is a fan project and isn't affiliated with Mojang, Microsoft or Anthropic. Minecraft and Clawd belong to their owners, and the license doesn't give you any rights to those names or characters.
