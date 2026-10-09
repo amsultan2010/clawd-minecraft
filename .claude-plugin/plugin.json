@@ -1,6 +1,6 @@
 {
   "name": "clawd-minecraft",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Usage tracker drawn as a block-game HUD: hearts and armor for the 7-day limit, XP bar for the 5-hour limit, hunger for the context window, and a Clawd that walks beside it",
   "author": {
     "name": "Abdullah Sultan"
