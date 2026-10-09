@@ -94,6 +94,42 @@ test('Clawd walks, celebrates a finished turn, then walks again', async ($, on) 
   await ui.unmount()
 })
 
+test('Clawd does not celebrate a turn that errored, was interrupted or was a subagent’s', async ($, on) => {
+  mock.clock(on)
+  usage(on, BOTH)
+  on('turn.complete', () => ({ text: '' }))
+
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  const clawd = async () => (await ui.findAll({ type: 'Svg' }))[1]?.props.alt
+
+  await $.turn.complete({ ...TURN, reason: 'error' })
+  expect(await clawd()).toBe('Clawd: walk')
+  await $.turn.complete({ ...TURN, reason: 'aborted', isAborted: true })
+  expect(await clawd()).toBe('Clawd: walk')
+  await $.turn.complete({ ...TURN, reason: 'answer', agentId: 'a1' })
+  expect(await clawd()).toBe('Clawd: walk')
+  await ui.unmount()
+})
+
+test('a second finished turn gets its own four seconds', async ($, on) => {
+  const clock = mock.clock(on)
+  usage(on, BOTH)
+  on('turn.complete', () => ({ text: '' }))
+
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  const clawd = async () => (await ui.findAll({ type: 'Svg' }))[1]?.props.alt
+
+  await $.turn.complete({ ...TURN, reason: 'answer' })
+  await clock.advance(3000)
+  await $.turn.complete({ ...TURN, reason: 'answer' })
+  // the first turn's timer comes due here and must not end the second's
+  await clock.advance(2000)
+  expect(await clawd()).toBe('Clawd: done')
+  await clock.advance(2000)
+  expect(await clawd()).toBe('Clawd: walk')
+  await ui.unmount()
+})
+
 test('Clawd asks while a question waits, and hands its answer on untouched', async ($, on) => {
   const clock = mock.clock(on)
   let answer = () => {}
@@ -112,6 +148,31 @@ test('Clawd asks while a question waits, and hands its answer on untouched', asy
   expect(await clawd()).toBe('Clawd: ask')
   answer()
   expect(await call).toMatchObject({ result: { answers: { Color: 'orange' } } })
+  expect(await clawd()).toBe('Clawd: walk')
+  await ui.unmount()
+})
+
+test('Clawd keeps asking until every open question is answered', async ($, on) => {
+  const clock = mock.clock(on)
+  const answers: (() => void)[] = []
+  usage(on, BOTH)
+  on('tool.call', { tool: 'AskUserQuestion' }, async () => {
+    await new Promise<void>(resolve => answers.push(resolve))
+
+    return { result: {} }
+  })
+
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  const clawd = async () => (await ui.findAll({ type: 'Svg' }))[1]?.props.alt
+  const first = $.tool.call({ tool: 'AskUserQuestion', questions: [] })
+  const second = $.tool.call({ tool: 'AskUserQuestion', questions: [] })
+
+  await clock.settle()
+  answers[0]?.()
+  await first
+  expect(await clawd()).toBe('Clawd: ask')
+  answers[1]?.()
+  await second
   expect(await clawd()).toBe('Clawd: walk')
   await ui.unmount()
 })

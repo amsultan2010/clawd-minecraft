@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { Register } from 'claude-code'
+import type { EngineInterface, Register, Timer } from 'claude-code'
 
 import type { Mood } from '../types'
 
@@ -223,28 +223,47 @@ const clawd = (now: Mood, width: number) => {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="50" shape-rendering="crispEdges"><style>${css}</style><g class="${isWalking ? 'w' : 'c'}"><g transform="scale(2)"><g transform="translate(0 4)">${shadow}<g>${now === 'done' ? move('0 0;0 -4;0 0', '.56s', JUMP) : ''}${leg(8, '#9c4f37', '3;5')}${leg(24, '#9c4f37', '5;3')}${leg(4, BODY, '5;3')}${leg(28, BODY, '3;5')}<g>${isWalking ? move('0 0;0 -1', '.22s') : ''}<rect x="3" y="-1" width="28" height="18" fill="${EDGE}"/>${block(4, 0, 26, 16)}${GRAIN}${arm(0, -1, move(left, '.44s'))}${arm(30, 30, move(right, now === 'ask' ? '.36s' : '.44s'))}${eyes}</g></g>${beside}</g></g></g></svg>`
 }
 
+// Clawd's mood is read off two facts, so events that overlap cannot leave it
+// wrong: how many questions are waiting, and the timer that ends a cheer.
+let asking = 0
+let cheer: Timer | undefined
+
+const settle = ($: EngineInterface) =>
+  update($, mood, () => (asking > 0 ? 'ask' : cheer === undefined ? 'walk' : 'done'))
+
 export const register: Register = on => {
-  // A reload drops the timer that ends `done`, so start over walking.
+  // A reload drops both facts, so start over from them.
   on('session.start', async ($, e, next) => {
-    await update($, mood, () => 'walk')
+    await settle($)
 
     return next(e)
   })
 
   on('tool.call', { tool: 'AskUserQuestion' }, async ($, e, next) => {
-    await update($, mood, () => 'ask')
+    asking += 1
+    await settle($)
 
     try {
       return await next(e)
     } finally {
-      await update($, mood, () => 'walk')
+      asking -= 1
+      await settle($)
     }
   })
 
+  // Only the main thread's own answered turn is cheered: not an error, a
+  // refusal, an interrupt or a subagent's turn. Each cheer runs its full time.
   on('turn.complete', async ($, e, next) => {
-    if (e.agentId === undefined && !e.isAborted) {
-      await update($, mood, () => 'done')
-      $.clock.after(4000, () => void update($, mood, now => (now === 'done' ? 'walk' : now)))
+    if (e.agentId === undefined) {
+      cheer?.cancel()
+      cheer =
+        e.reason === 'answer'
+          ? $.clock.after(4000, () => {
+              cheer = undefined
+              void settle($)
+            })
+          : undefined
+      await settle($)
     }
 
     return next(e)
