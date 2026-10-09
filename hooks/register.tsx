@@ -239,11 +239,14 @@ export const register: Register = on => {
     return next(e)
   })
 
+  // The count is balanced whatever fails, so a mood that could not be saved
+  // never leaves him asking for good, and the question itself goes on as asked.
   on('tool.call', { tool: 'AskUserQuestion' }, async ($, e, next) => {
     asking += 1
-    await settle($)
 
     try {
+      await settle($)
+
       return await next(e)
     } finally {
       asking -= 1
