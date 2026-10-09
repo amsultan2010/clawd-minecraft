@@ -1,0 +1,13 @@
+{
+  "name": "clawd-minecraft",
+  "description": "A block-game usage HUD for Claude Code, with Clawd",
+  "owner": {
+    "name": "Abdullah Sultan"
+  },
+  "plugins": [
+    {
+      "name": "clawd-minecraft",
+      "source": "./"
+    }
+  ]
+}
