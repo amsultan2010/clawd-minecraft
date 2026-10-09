@@ -292,8 +292,12 @@ export const register: Register = on => {
     return next(e)
   })
 
+  // The HUD shows the limits and the context, not the cost, which grows with
+  // every reply: a measurement of that alone is no reason to draw again.
   on('session.measure', ($, e, next) => {
-    $.ui.invalidate('ui.render')
+    if (e.changed.some(unit => unit !== 'cost')) {
+      $.ui.invalidate('ui.render')
+    }
 
     return next(e)
   })

@@ -151,6 +151,24 @@ test('starts the walk in the middle, where his other poses stand, heading right'
   await ui.unmount()
 })
 
+test('asks for a redraw when a figure it shows moved, not for the session’s cost alone', async ($, on) => {
+  let redraws = 0
+  on('session.measure', (_, e) => ({ changed: e.changed }))
+  on('ui.invalidate', (_, e, next) => {
+    redraws += 1
+
+    return next(e)
+  })
+
+  const measured = { context: { window: 200000, percent: 25 }, rateLimits: BOTH }
+
+  // the cost grows with every reply while Claude works, and the HUD shows none of it
+  await $.session.measure({ ...measured, cost: { usd: 1 }, changed: ['cost'] })
+  expect(redraws).toBe(0)
+  await $.session.measure({ ...measured, changed: ['cost', 'context'] })
+  expect(redraws).toBe(1)
+})
+
 test('carries a still Clawd for people who ask for reduced motion', async ($, on) => {
   mock.clock(on)
   usage(on, BOTH)
