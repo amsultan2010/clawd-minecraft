@@ -11,6 +11,8 @@ A Claude Code mod that shows your usage as a Minecraft HUD (with Clawd walking a
 
 A bar stays blank until Claude Code has a reading for it (nothing is guessed), and a limit whose reset time has already passed shows as full.
 
+If your system is set to reduce motion, Clawd stands still instead of walking around. And if another mod draws in the same spot above the prompt, it keeps its place right under the HUD.
+
 ## Install
 
 You need Claude Code 2.1.287 or later (mods are on by default from there, no flag needed). The hearts, armor and XP bar also need a Claude subscription, since they read your plan's limits (without one you still get hunger and Clawd). Run these two in a terminal:

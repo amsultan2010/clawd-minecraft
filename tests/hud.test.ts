@@ -117,6 +117,21 @@ test('never shows the context as less than empty', async ($, on) => {
   await ui.unmount()
 })
 
+test('carries a still Clawd for people who ask for reduced motion', async ($, on) => {
+  mock.clock(on)
+  usage(on, BOTH)
+
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  const source = String((await ui.findAll({ type: 'Svg' }))[1]?.props.source)
+  const still = source.slice(source.indexOf('<g class="s'))
+
+  // the system setting swaps the moving figure for one with nothing animated
+  expect(source).toContain('@media(prefers-reduced-motion:reduce){.m{display:none}.s{display:inline}}')
+  expect(still).toContain('<rect')
+  expect(still).not.toContain('<animate')
+  await ui.unmount()
+})
+
 test('Clawd walks, celebrates a finished turn, then walks again', async ($, on) => {
   const clock = mock.clock(on)
   usage(on, BOTH)

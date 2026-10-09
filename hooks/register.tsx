@@ -186,20 +186,18 @@ const marks = (text: string, fill: string) => {
 }
 
 // Clawd at twice the grid Claude Code draws him on (13x8 body, 2x2 arms,
-// four legs), in the HUD's own 2px pixels. He is drawn in a frame as wide as
-// the band has left, so CSS places him by the frame's width (`vw`) and SMIL
-// moves his parts: nothing redraws while he walks. `width` is that frame's
-// cap; the frame's page is painted the band's dark so it shows no white.
-const clawd = (now: Mood, width: number) => {
+// four legs), in the HUD's own 2px pixels, as `now` has him; `isStill` leaves
+// out everything that moves.
+const figure = (now: Mood, isStill: boolean) => {
   const isWalking = now === 'walk'
-  const lap = Math.max(8, Math.round((width - 80) / 14))
-  const css = `:root{color-scheme:light dark;overflow:hidden}body{margin:0;overflow:hidden}svg{width:100vw}@media(prefers-color-scheme:dark){:root,body{background:#212121}}.w{animation:w ${lap}s linear infinite}.g{animation:g ${lap}s step-end infinite}.c{transform:translateX(calc(50vw - 34px))}@keyframes w{0%,100%{transform:translateX(6px)}50%{transform:translateX(calc(100vw - 74px))}}@keyframes g{0%{transform:translateX(2px)}50%{transform:translateX(-2px)}}`
+  const anim = isStill ? () => '' : animate
+  const shift = isStill ? () => '' : move
 
   // Each part carries its dark edge on the sides the body does not cover.
   const leg = (x: number, fill: string, values: string) => {
     const edge = values.split(';').map(tall => Number(tall) + 1).join(';')
 
-    return `<rect x="${x - 1}" y="15" width="4" height="6" fill="${EDGE}">${isWalking ? animate('height', edge, '.44s') : ''}</rect><rect x="${x}" y="15" width="2" height="5" fill="${fill}">${isWalking ? animate('height', values, '.44s') : ''}</rect>`
+    return `<rect x="${x - 1}" y="15" width="4" height="6" fill="${EDGE}">${isWalking ? anim('height', edge, '.44s') : ''}</rect><rect x="${x}" y="15" width="2" height="5" fill="${fill}">${isWalking ? anim('height', values, '.44s') : ''}</rect>`
   }
   const arm = (x: number, edge: number, motion: string) =>
     `<g${now === 'done' ? ' transform="translate(0 -5)"' : ''}>${motion}<rect x="${edge}" y="7" width="5" height="6" fill="${EDGE}"/>${block(x, 8, 4, 4)}</g>`
@@ -212,15 +210,29 @@ const clawd = (now: Mood, width: number) => {
   const eyes =
     now === 'done'
       ? `<path fill="${EYE}" d="M8 5h2v1h-2zM7 6h1v1h-1zM10 6h1v1h-1zM24 5h2v1h-2zM23 6h1v1h-1zM26 6h1v1h-1z"/>`
-      : `<g${isWalking ? ' class="g"' : ''}><path fill="${EYE}" d="M8 4h2v4h-2zM24 4h2v4h-2z"/><path fill="#fff" d="M8 4h1v1h-1zM24 4h1v1h-1z"/><path fill="${BODY}" opacity="0" d="M8 4h2v3h-2zM24 4h2v3h-2z"><animate attributeName="opacity" values="0;1" keyTimes="0;.97" dur="4s" ${STEPPED} ${LOOP}/></path></g>`
-  const shadow = `<rect x="5" y="20" width="24" height="1" opacity=".3">${now === 'done' ? animate('x', '5;9;5', '.56s', JUMP) + animate('width', '24;16;24', '.56s', JUMP) : ''}</rect>`
+      : `<g${isWalking && !isStill ? ' class="g"' : ''}><path fill="${EYE}" d="M8 4h2v4h-2zM24 4h2v4h-2z"/><path fill="#fff" d="M8 4h1v1h-1zM24 4h1v1h-1z"/><path fill="${BODY}" opacity="0" d="M8 4h2v3h-2zM24 4h2v3h-2z">${anim('opacity', '0;1', '4s', `keyTimes="0;.97" ${STEPPED}`)}</path></g>`
+  const shadow = `<rect x="5" y="20" width="24" height="1" opacity=".3">${now === 'done' ? anim('x', '5;9;5', '.56s', JUMP) + anim('width', '24;16;24', '.56s', JUMP) : ''}</rect>`
   const beside = {
     walk: '',
-    ask: `<g>${move('0 0;0 1', '.5s')}${marks('?', '#ffff55')}</g>`,
-    done: `${marks('✓', '#55ff55')}<g fill="#ffe95c"><rect x="-4" y="2" width="1" height="1">${animate('opacity', '1;0', '.4s')}</rect><rect x="-2" y="12" width="1" height="1">${animate('opacity', '0;1', '.4s')}</rect><rect x="43" y="9" width="1" height="1">${animate('opacity', '1;0', '.6s')}</rect></g>`,
+    ask: `<g>${shift('0 0;0 1', '.5s')}${marks('?', '#ffff55')}</g>`,
+    done: `${marks('✓', '#55ff55')}<g fill="#ffe95c"><rect x="-4" y="2" width="1" height="1">${anim('opacity', '1;0', '.4s')}</rect><rect x="-2" y="12" width="1" height="1">${anim('opacity', '0;1', '.4s')}</rect><rect x="43" y="9" width="1" height="1">${anim('opacity', '1;0', '.6s')}</rect></g>`,
   }[now]
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="50" shape-rendering="crispEdges"><style>${css}</style><g class="${isWalking ? 'w' : 'c'}"><g transform="scale(2)"><g transform="translate(0 4)">${shadow}<g>${now === 'done' ? move('0 0;0 -4;0 0', '.56s', JUMP) : ''}${leg(8, '#9c4f37', '3;5')}${leg(24, '#9c4f37', '5;3')}${leg(4, BODY, '5;3')}${leg(28, BODY, '3;5')}<g>${isWalking ? move('0 0;0 -1', '.22s') : ''}<rect x="3" y="-1" width="28" height="18" fill="${EDGE}"/>${block(4, 0, 26, 16)}${GRAIN}${arm(0, -1, move(left, '.44s'))}${arm(30, 30, move(right, now === 'ask' ? '.36s' : '.44s'))}${eyes}</g></g>${beside}</g></g></g></svg>`
+  return `<g transform="scale(2)"><g transform="translate(0 4)">${shadow}<g>${now === 'done' ? shift('0 0;0 -4;0 0', '.56s', JUMP) : ''}${leg(8, '#9c4f37', '3;5')}${leg(24, '#9c4f37', '5;3')}${leg(4, BODY, '5;3')}${leg(28, BODY, '3;5')}<g>${isWalking ? shift('0 0;0 -1', '.22s') : ''}<rect x="3" y="-1" width="28" height="18" fill="${EDGE}"/>${block(4, 0, 26, 16)}${GRAIN}${arm(0, -1, shift(left, '.44s'))}${arm(30, 30, shift(right, now === 'ask' ? '.36s' : '.44s'))}${eyes}</g></g>${beside}</g></g>`
+}
+
+// Clawd's strip. He is drawn in a frame as wide as the band has left, so CSS
+// places him by the frame's width (`vw`) and SMIL moves his parts: nothing
+// redraws while he walks. `width` is that frame's cap; the frame's page is
+// painted the band's dark so it shows no white. Two figures are in it, the
+// moving one (`m`) and a still one (`s`) the system's reduced-motion setting
+// shows in its place.
+const clawd = (now: Mood, width: number) => {
+  const place = now === 'walk' ? 'w' : 'c'
+  const lap = Math.max(8, Math.round((width - 80) / 14))
+  const css = `:root{color-scheme:light dark;overflow:hidden}body{margin:0;overflow:hidden}svg{width:100vw}@media(prefers-color-scheme:dark){:root,body{background:#212121}}.w{animation:w ${lap}s linear infinite}.g{animation:g ${lap}s step-end infinite}.c{transform:translateX(calc(50vw - 34px))}.p{transform:translateX(6px)}.s{display:none}@media(prefers-reduced-motion:reduce){.m{display:none}.s{display:inline}}@keyframes w{0%,100%{transform:translateX(6px)}50%{transform:translateX(calc(100vw - 74px))}}@keyframes g{0%{transform:translateX(2px)}50%{transform:translateX(-2px)}}`
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="50" shape-rendering="crispEdges"><style>${css}</style><g class="m ${place}">${figure(now, false)}</g><g class="s ${now === 'walk' ? 'p' : 'c'}">${figure(now, true)}</g></svg>`
 }
 
 // Clawd's mood is read off two facts, so events that overlap cannot leave it
