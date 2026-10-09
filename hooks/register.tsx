@@ -315,20 +315,26 @@ export const register: Register = on => {
     // cap on Clawd's frame, which the surface fits to the room it really has.
     const spare = Math.max(120, Math.round(e.props.bodyColumns * 8) - 364)
     const { Box, Svg } = $.ui.resolve(e)
+    // The band is shared: whatever another mod drew there (a confirmation with
+    // buttons, say) keeps its place under the HUD.
+    const theirs = await next(e)
 
     return (
-      <Box>
-        <Box flexShrink={0}>
-          <Svg
-            source={hud(week, session, room)}
-            alt={figures.filter(Boolean).join(', ')}
-            width={364}
-            height={50}
-          />
+      <Box flexDirection="column">
+        <Box>
+          <Box flexShrink={0}>
+            <Svg
+              source={hud(week, session, room)}
+              alt={figures.filter(Boolean).join(', ')}
+              width={364}
+              height={50}
+            />
+          </Box>
+          <Box flexGrow={1} minWidth={0} overflow="hidden">
+            <Svg source={clawd(now, spare)} alt={`Clawd: ${now}`} height={50} isInteractive />
+          </Box>
         </Box>
-        <Box flexGrow={1} minWidth={0} overflow="hidden">
-          <Svg source={clawd(now, spare)} alt={`Clawd: ${now}`} height={50} isInteractive />
-        </Box>
+        {theirs}
       </Box>
     )
   })

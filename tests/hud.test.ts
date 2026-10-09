@@ -19,11 +19,16 @@ const BOTH: SessionRateLimit[] = [
   { kind: 'seven_day', percentUsed: 15 },
 ]
 
-// Answers `$.session.usage()` beneath the mod: the limits, and how full the context is.
-const usage = (on: On, rateLimits: SessionRateLimit[], percent?: number) =>
+// What sits beneath the mod: the limits and how full the context is, and
+// whatever another mod (or the engine) drew in the same band.
+const usage = (on: On, rateLimits: SessionRateLimit[], percent?: number) => {
   on('session.usage', () => ({
     value: { startedAt: 0, context: { window: 200000, percent }, rateLimits },
   }))
+  on('ui.render', { component: 'AbovePrompt' }, ($, e) =>
+    $.ui.resolve(e).Text({ children: 'drawn beneath' }),
+  )
+}
 
 const TURN = { answer: '', durationMs: 0, isAborted: false, turnId: 't' } as const
 
@@ -177,15 +182,24 @@ test('Clawd keeps asking until every open question is answered', async ($, on) =
   await ui.unmount()
 })
 
-test('leaves the terminal band to the engine', async ($, on) => {
+test('keeps what another mod drew in the band, under the HUD', async ($, on) => {
   mock.clock(on)
   usage(on, BOTH, 25)
-  on('ui.render', { component: 'AbovePrompt' }, ($, e) =>
-    $.ui.resolve(e).Text({ children: 'drawn by the engine' }),
-  )
+
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+
+  expect(await ui.findAll({ type: 'Svg' })).toHaveLength(2)
+  expect((await ui.find({ type: 'Text' }))?.text).toBe('drawn beneath')
+  await ui.unmount()
+})
+
+test('leaves the terminal band to whatever is beneath', async ($, on) => {
+  mock.clock(on)
+  usage(on, BOTH, 25)
 
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
 
-  expect((await ui.find({ type: 'Text' }))?.text).toBe('drawn by the engine')
+  expect((await ui.find({ type: 'Text' }))?.text).toBe('drawn beneath')
+  expect(await ui.find({ type: 'Svg' })).toBeUndefined()
   await ui.unmount()
 })
