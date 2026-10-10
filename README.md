@@ -7,7 +7,7 @@ A Claude Code mod that shows your usage as a Minecraft HUD (with Clawd walking a
 - **Hearts and armor:** how much of your 7-day limit is left
 - **XP bar and number:** how much of your 5-hour limit is left (the number is the % remaining)
 - **Hunger:** how much of the context window is left
-- **Clawd:** paces around, waves under a "?" when Claude asks you something, and jumps when a turn finishes
+- **Clawd:** paces around, waves under a "?" for as long as a question waits on you, and keeps jumping once a turn finishes, until you send the next prompt
 
 A bar stays blank until Claude Code has a reading for it (nothing is guessed), and a limit whose reset time has already passed shows as full.
 
@@ -36,7 +36,7 @@ Install the clawd-minecraft mod for me. Run `claude plugin marketplace add amsul
 
 It reads your usage numbers (the 5-hour and 7-day limits and the context window) and draws the HUD. That's it. No network calls, no file access, no shell commands.
 
-It also notices when Claude asks you a question or finishes a turn (that's how Clawd knows when to react), but it never changes or blocks anything. Run `claude plugin validate .` in this repo if you want to see every hook and call for yourself.
+It also notices when Claude asks you a question and when a turn starts or finishes (that's how Clawd knows when to react), but it never changes or blocks anything. Run `claude plugin validate .` in this repo if you want to see every hook and call for yourself.
 
 ## Contributing
 

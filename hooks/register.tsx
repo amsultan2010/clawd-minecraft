@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register, Timer } from 'claude-code'
+import type { EngineInterface, Register } from 'claude-code'
 
 import type { Mood } from '../types'
 
@@ -244,12 +244,13 @@ const clawd = (now: Mood, width: number) => {
 let strip = 0
 
 // Clawd's mood is read off two facts, so events that overlap cannot leave it
-// wrong: how many questions are waiting, and the timer that ends a cheer.
+// wrong: how many questions are waiting, and whether the last turn ended in an
+// answer that no new turn has followed.
 let asking = 0
-let cheer: Timer | undefined
+let isAnswered = false
 
 const settle = ($: EngineInterface) =>
-  update($, mood, () => (asking > 0 ? 'ask' : cheer === undefined ? 'walk' : 'done'))
+  update($, mood, () => (asking > 0 ? 'ask' : isAnswered ? 'done' : 'walk'))
 
 export const register: Register = on => {
   // A reload drops both facts, so start over from them.
@@ -274,18 +275,20 @@ export const register: Register = on => {
     }
   })
 
+  // The cheer lasts until Claude is at work again: the next turn, whether a
+  // prompt or a continuation began it. A subagent's run raises no turn.start.
+  on('turn.start', async ($, e, next) => {
+    isAnswered = false
+    await settle($)
+
+    return next(e)
+  })
+
   // Only the main thread's own answered turn is cheered: not an error, a
-  // refusal, an interrupt or a subagent's turn. Each cheer runs its full time.
+  // refusal, an interrupt or a subagent's turn.
   on('turn.complete', async ($, e, next) => {
     if (e.agentId === undefined) {
-      cheer?.cancel()
-      cheer =
-        e.reason === 'answer'
-          ? $.clock.after(4000, () => {
-              cheer = undefined
-              void settle($)
-            })
-          : undefined
+      isAnswered = e.reason === 'answer'
       await settle($)
     }
 

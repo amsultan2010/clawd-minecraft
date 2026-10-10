@@ -184,9 +184,10 @@ test('carries a still Clawd for people who ask for reduced motion', async ($, on
   await ui.unmount()
 })
 
-test('Clawd walks, celebrates a finished turn, then walks again', async ($, on) => {
+test('Clawd walks, celebrates a finished turn until the next one starts, then walks again', async ($, on) => {
   const clock = mock.clock(on)
   usage(on, BOTH)
+  on('turn.start', (_, e) => ({ turnId: e.turnId }))
   on('turn.complete', () => ({ text: '' }))
 
   const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
@@ -195,7 +196,10 @@ test('Clawd walks, celebrates a finished turn, then walks again', async ($, on) 
   expect(await clawd()).toBe('Clawd: walk')
   await $.turn.complete({ ...TURN, reason: 'answer' })
   expect(await clawd()).toBe('Clawd: done')
-  await clock.advance(4000)
+  // no timer ends the cheer: only Claude going back to work does
+  await clock.advance(60 * 60 * 1000)
+  expect(await clawd()).toBe('Clawd: done')
+  await $.turn.start({ text: 'next', turnId: 'u' })
   expect(await clawd()).toBe('Clawd: walk')
   await ui.unmount()
 })
@@ -217,8 +221,8 @@ test('Clawd does not celebrate a turn that errored, was interrupted or was a sub
   await ui.unmount()
 })
 
-test('a second finished turn gets its own four seconds', async ($, on) => {
-  const clock = mock.clock(on)
+test('a subagent’s turn does not end the cheer, and an interrupted turn does', async ($, on) => {
+  mock.clock(on)
   usage(on, BOTH)
   on('turn.complete', () => ({ text: '' }))
 
@@ -226,12 +230,9 @@ test('a second finished turn gets its own four seconds', async ($, on) => {
   const clawd = async () => (await ui.findAll({ type: 'Svg' }))[1]?.props.alt
 
   await $.turn.complete({ ...TURN, reason: 'answer' })
-  await clock.advance(3000)
-  await $.turn.complete({ ...TURN, reason: 'answer' })
-  // the first turn's timer comes due here and must not end the second's
-  await clock.advance(2000)
+  await $.turn.complete({ ...TURN, reason: 'error', agentId: 'a1' })
   expect(await clawd()).toBe('Clawd: done')
-  await clock.advance(2000)
+  await $.turn.complete({ ...TURN, reason: 'aborted', isAborted: true })
   expect(await clawd()).toBe('Clawd: walk')
   await ui.unmount()
 })
