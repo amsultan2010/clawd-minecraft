@@ -7,7 +7,7 @@ A Claude Code mod that shows your usage as a Minecraft HUD (with Clawd walking a
 - **Hearts and armor:** how much of your 7-day limit is left
 - **XP bar and number:** how much of your 5-hour limit is left (the number is the % remaining)
 - **Hunger:** how much of the context window is left
-- **Clawd:** paces around, waves under a "?" for as long as a question waits on you, and keeps jumping once a turn finishes, until you send the next prompt
+- **Clawd:** paces around, flags you down under flashing "?"s for as long as a question waits on you, and keeps jumping under fireworks once a turn finishes, until you send the next prompt
 
 A bar stays blank until Claude Code has a reading for it (nothing is guessed), and a limit whose reset time has already passed shows as full.
 

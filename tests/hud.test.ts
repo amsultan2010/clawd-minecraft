@@ -204,6 +204,28 @@ test('Clawd walks, celebrates a finished turn until the next one starts, then wa
   await ui.unmount()
 })
 
+test('a pose that waits on the person shows along the whole strip, and stays still under reduced motion', async ($, on) => {
+  mock.clock(on)
+  usage(on, BOTH)
+  on('turn.complete', () => ({ text: '' }))
+
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  const source = async () => String((await ui.findAll({ type: 'Svg' }))[1]?.props.source)
+
+  // the walk has no dashes along the strip's edges
+  expect(await source()).not.toContain('<path class="e"')
+  await $.turn.complete({ ...TURN, reason: 'answer' })
+
+  const done = await source()
+  const still = done.slice(done.indexOf('<g class="s'))
+
+  expect(done).toContain('<path class="e" stroke="#55ff55"')
+  // the dashes march by CSS, only for people who have not asked for less motion
+  expect(done).toContain('@media(prefers-reduced-motion:no-preference){.e{animation:e .6s steps(6) infinite}}')
+  expect(still).not.toContain('<animate')
+  await ui.unmount()
+})
+
 test('Clawd does not celebrate a turn that errored, was interrupted or was a subagent’s', async ($, on) => {
   mock.clock(on)
   usage(on, BOTH)

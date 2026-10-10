@@ -178,11 +178,31 @@ const block = (x: number, y: number, w: number, h: number) => {
 // The grain of his hide, as the game's blocks have one.
 const GRAIN = `<path fill="#e2896a" d="M12 2h1v1h-1zM19 10h1v1h-1zM26 12h1v1h-1zM7 11h1v1h-1z"/><path fill="#c8684b" d="M15 6h1v1h-1zM21 3h1v1h-1zM10 13h1v1h-1zM27 8h1v1h-1zM17 12h1v1h-1z"/>`
 
-const marks = (text: string, fill: string) => {
+const marks = (text: string, fill: string, x: number) => {
   const paint: Paint = new Map()
-  write(paint, text, 36, -4, fill)
+  write(paint, text, x, -4, fill)
 
   return paths(paint)
+}
+
+const POP = 'calcMode="discrete" keyTimes="0;.12;.24;.36;.48"'
+const SPARKS: [number, number][] = [
+  [1.5, 0], [1, 1], [0, 1.5], [-1, 1], [-1.5, 0], [-1, -1], [0, -1.5], [1, -1],
+]
+
+// A firework: two rings of sparks thrown out from (x, y), fading as they go,
+// then a pause; `begin` staggers one burst against the next.
+const burst = (x: number, y: number, fill: string, begin: string) => {
+  const timing = `${POP} begin="${begin}"`
+  const sparks = [1, 2].flatMap(ring =>
+    SPARKS.map(([dx, dy]) => {
+      const flight = [0, 1, 2, 3, 3].map(far => `${dx * ring * far} ${dy * ring * far}`).join(';')
+
+      return `<rect x="${x}" y="${y}" width="1" height="1">${move(flight, '1.4s', timing)}</rect>`
+    }),
+  )
+
+  return `<g fill="${fill}" opacity="0">${animate('opacity', '1;1;1;.5;0', '1.4s', timing)}${sparks.join('')}</g>`
 }
 
 // Clawd at twice the grid Claude Code draws him on (13x8 body, 2x2 arms,
@@ -203,10 +223,20 @@ const figure = (now: Mood, isStill: boolean) => {
     `<g${now === 'done' ? ' transform="translate(0 -5)"' : ''}>${motion}<rect x="${edge}" y="7" width="5" height="6" fill="${EDGE}"/>${block(x, 8, 4, 4)}</g>`
   const swing: Record<Mood, [string, string]> = {
     walk: ['0 0;0 1', '0 1;0 0'],
-    ask: ['0 0', '0 0;0 -5'],
+    ask: ['0 -5;0 0', '0 0;0 -5'],
     done: ['0 0', '0 0'],
   }
   const [left, right] = swing[now]
+  const beat = now === 'ask' ? '.36s' : '.44s'
+  // What the whole of him does: sway to flag the person down, or jump for joy.
+  const bounce = {
+    walk: '',
+    ask: shift('-1 0;1 0', '.36s'),
+    done: shift('0 0;0 -4;0 0', '.56s', JUMP),
+  }[now]
+  // A sign in the game's font that flashes white.
+  const sign = (text: string, fill: string, x: number) =>
+    `${marks(text, fill, x)}<g opacity="0">${anim('opacity', '0;1', '.5s')}${marks(text, '#fff', x)}</g>`
   const eyes =
     now === 'done'
       ? `<path fill="${EYE}" d="M8 5h2v1h-2zM7 6h1v1h-1zM10 6h1v1h-1zM24 5h2v1h-2zM23 6h1v1h-1zM26 6h1v1h-1z"/>`
@@ -214,11 +244,11 @@ const figure = (now: Mood, isStill: boolean) => {
   const shadow = `<rect x="5" y="20" width="24" height="1" opacity=".3">${now === 'done' ? anim('x', '5;9;5', '.56s', JUMP) + anim('width', '24;16;24', '.56s', JUMP) : ''}</rect>`
   const beside = {
     walk: '',
-    ask: `<g>${shift('0 0;0 1', '.5s')}${marks('?', '#ffff55')}</g>`,
-    done: `${marks('✓', '#55ff55')}<g fill="#ffe95c"><rect x="-4" y="2" width="1" height="1">${anim('opacity', '1;0', '.4s')}</rect><rect x="-2" y="12" width="1" height="1">${anim('opacity', '0;1', '.4s')}</rect><rect x="43" y="9" width="1" height="1">${anim('opacity', '1;0', '.6s')}</rect></g>`,
+    ask: `<g>${shift('0 0;0 2', '.5s')}${sign('?', '#ffff55', 36)}</g><g>${shift('0 2;0 0', '.5s')}${sign('?', '#ffff55', -7)}</g>`,
+    done: `${sign('✓', '#55ff55', 36)}${isStill ? '' : burst(-9, 6, '#ffff55', '0s') + burst(45, 12, '#ff5555', '-.5s') + burst(-26, 11, '#55ffff', '-.9s') + burst(62, 6, '#ff55ff', '-.2s')}`,
   }[now]
 
-  return `<g transform="scale(2)"><g transform="translate(0 4)">${shadow}<g>${now === 'done' ? shift('0 0;0 -4;0 0', '.56s', JUMP) : ''}${leg(8, '#9c4f37', '3;5')}${leg(24, '#9c4f37', '5;3')}${leg(4, BODY, '5;3')}${leg(28, BODY, '3;5')}<g>${isWalking ? shift('0 0;0 -1', '.22s') : ''}<rect x="3" y="-1" width="28" height="18" fill="${EDGE}"/>${block(4, 0, 26, 16)}${GRAIN}${arm(0, -1, shift(left, '.44s'))}${arm(30, 30, shift(right, now === 'ask' ? '.36s' : '.44s'))}${eyes}</g></g>${beside}</g></g>`
+  return `<g transform="scale(2)"><g transform="translate(0 4)">${shadow}<g>${bounce}${leg(8, '#9c4f37', '3;5')}${leg(24, '#9c4f37', '5;3')}${leg(4, BODY, '5;3')}${leg(28, BODY, '3;5')}<g>${isWalking ? shift('0 0;0 -1', '.22s') : ''}<rect x="3" y="-1" width="28" height="18" fill="${EDGE}"/>${block(4, 0, 26, 16)}${GRAIN}${arm(0, -1, shift(left, beat))}${arm(30, 30, shift(right, beat))}${eyes}</g></g>${beside}</g></g>`
 }
 
 // Clawd's strip. He is drawn in a frame as wide as the band has left, so CSS
@@ -232,9 +262,15 @@ const figure = (now: Mood, isStill: boolean) => {
 const clawd = (now: Mood, width: number) => {
   const place = now === 'walk' ? 'w' : 'c'
   const lap = Math.max(8, Math.round((width - 80) / 14))
-  const css = `:root{color-scheme:light dark;overflow:hidden}body{margin:0;overflow:hidden}svg{width:100vw}@media(prefers-color-scheme:dark){:root,body{background:#212121}}.w{animation:w ${lap}s linear ${-lap / 4}s infinite}.g{animation:g ${lap}s step-end ${-lap / 4}s infinite}.c{transform:translateX(calc(50vw - 34px))}.s{display:none}@media(prefers-reduced-motion:reduce){.m{display:none}.s{display:inline}}@keyframes w{0%,100%{transform:translateX(6px)}50%{transform:translateX(calc(100vw - 74px))}}@keyframes g{0%{transform:translateX(2px)}50%{transform:translateX(-2px)}}`
+  const css = `:root{color-scheme:light dark;overflow:hidden}body{margin:0;overflow:hidden}svg{width:100vw}@media(prefers-color-scheme:dark){:root,body{background:#212121}}.w{animation:w ${lap}s linear ${-lap / 4}s infinite}.g{animation:g ${lap}s step-end ${-lap / 4}s infinite}.c{transform:translateX(calc(50vw - 34px))}.s{display:none}@media(prefers-reduced-motion:no-preference){.e{animation:e .6s steps(6) infinite}}@media(prefers-reduced-motion:reduce){.m{display:none}.s{display:inline}}@keyframes w{0%,100%{transform:translateX(6px)}50%{transform:translateX(calc(100vw - 74px))}}@keyframes g{0%{transform:translateX(2px)}50%{transform:translateX(-2px)}}@keyframes e{to{stroke-dashoffset:-12}}`
+  // A pose that waits on the person shows across the whole band, not only
+  // where he stands: dashes of its color march along the strip's edges.
+  const edges =
+    now === 'walk'
+      ? ''
+      : `<path class="e" stroke="${now === 'ask' ? '#ffff55' : '#55ff55'}" stroke-width="2" stroke-dasharray="6" d="M0 1h9999M0 49h9999"/>`
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="50" shape-rendering="crispEdges"><style>${css}</style><g class="m ${place}">${figure(now, false)}</g><g class="s c">${figure(now, true)}</g></svg>`
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="50" shape-rendering="crispEdges"><style>${css}</style>${edges}<g class="m ${place}">${figure(now, false)}</g><g class="s c">${figure(now, true)}</g></svg>`
 }
 
 // The width Clawd's strip was last drawn for. The desktop keeps his frame only
